@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  
+  <style>
+     .login-section {
+    padding: 100px 0;
+  }
+  .login-form {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .login-form h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  .login-form .form-control {
+    margin-bottom: 15px;
+  }
+  .login-form .btn {
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+  </style>
+
+  <!-- Login Form Section -->
+<section class="login-section" id="login-section">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="login-form">
+          <h2 class="text-center">Admin Login</h2>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" class="form-control" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Login</button>
+          </form>
+          <div class="text-center mt-3">
+            <a href="#">Forgot Password?</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Message container for login status -->
+<div id="message-container" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.7); color: white; padding: 20px; border-radius: 10px; text-align: center; font-size: 24px;">
+  <span id="message-icon"></span>
+  <span id="message-text"></span>
+</div>
+</section>
+
+<!-- Main Content Section (hidden until logged in) -->
+<section id="content-section" style="display: none;">
+  <!-- Your content goes here, this will be shown after successful login -->
+  <h1>Welcome to the Admin Panel</h1>
+  <!-- Form to add a new blog post -->
+  <div>
+    <h2>Create a New Blog Post</h2>
+    <form id="createBlogForm">
+      <input type="text" id="title" placeholder="Blog Title" required /><br><br>
+      <input type="text" id="author" placeholder="Author Name" required /><br><br>
+      <input type="text" id="categories" placeholder="Categories (comma separated)" /><br><br>
+      <textarea id="content" placeholder="Blog Content" required></textarea><br><br>
+      <input type="text" id="imageURL" placeholder="Image URL" required /><br><br>
+      <input type="date" id="date" required /><br><br>
+      <input type="submit" value="Create Blog Post" />
+    </form>
+  </div>
+
+  <!-- Modal for Editing Blog Post -->
+  <div id="editModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); z-index: 1000;">
+    <h3>Edit Blog Post</h3>
+    <form id="editBlogForm">
+      <input type="hidden" id="editBlogId" />
+      <input type="text" id="editTitle" placeholder="Blog Title" required /><br><br>
+      <input type="text" id="editAuthor" placeholder="Author Name" required /><br><br>
+      <input type="text" id="editCategories" placeholder="Categories (comma separated)" /><br><br>
+      <textarea id="editContent" placeholder="Blog Content" required></textarea><br><br>
+      <input type="text" id="editImageURL" placeholder="Image URL" required /><br><br>
+      <input type="date" id="editDate" required /><br><br>
+      <button type="submit">Save Changes</button>
+      <button type="button" id="cancelEdit">Cancel</button>
+    </form>
+  </div>
+
+  <!-- Display all existing blog posts -->
+  <h2>Existing Blog Posts</h2>
+  <div id="blogsContainer"></div>
+
+
+</section>
+  
+  
+<!-- Message container for login status -->
+<div id="message-container" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.7); color: white; padding: 20px; border-radius: 10px; text-align: center; font-size: 24px;">
+  <span id="message-icon"></span>
+  <span id="message-text"></span>
+</div>
+  
+
+  <!-- Load the admin panel script -->
+  <script src="js/admin-panel.js"></script>
+  <script>
+  const auth = firebase.auth();
+
+// Handle form submission
+document.getElementById('login-form').addEventListener('submit', function(event) {
+  event.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      const user = userCredential.user;
+      console.log("User logged in:", user);
+
+      // Hide the login form and show the main content
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('content-section').style.display = 'block';
+
+      // Show success message
+      showMessage('success', 'Login Successful!');
+    })
+    .catch((error) => {
+      const errorMessage = error.message;
+      console.error("Error signing in:", errorMessage);
+
+      // Show error message
+      showMessage('error', 'Invalid credentials. Please try again.');
+    });
+});
+
+// Function to show the success or error message
+function showMessage(type, message) {
+  const messageContainer = document.getElementById('message-container');
+  const messageIcon = document.getElementById('message-icon');
+  const messageText = document.getElementById('message-text');
+
+  // Set the icon and message based on success or error
+  if (type === 'success') {
+    messageIcon.innerHTML = '✔';  // Checkmark for success
+    messageContainer.style.backgroundColor = 'green';
+  } else {
+    messageIcon.innerHTML = '✖';  // Cross for error
+    messageContainer.style.backgroundColor = 'red';
+  }
+
+  messageText.innerHTML = message;
+
+  // Show the message container
+  messageContainer.style.display = 'block';
+
+  // Hide the message container after 3 seconds
+  setTimeout(() => {
+    messageContainer.style.display = 'none';
+  }, 3000);
+}
+  </script>
+</body>
+</html>
